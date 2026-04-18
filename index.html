@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI 收據管家 - Gemini 增強版</title>
+    
+    <!-- PWA Meta -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AI收據">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkFJIOWUtuWhmueuoee2mSIsCiAgInNob3J0X25hbWUiIjogIkFJIOmmluWhmSIsCiAgInN0YXJ0X3VybCI6ICIuL2luZGV4Lmh0bWwiLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmZmZmZmYiLAogICJ0aGVtZV9jb2xvciI6ICIjNDMzOGMxIgp9">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google SDKs -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+
+    <style>
+        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); -webkit-tap-highlight-color: transparent; }
+        .safe-pb { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+        #splash-screen { position: fixed; inset: 0; background: #4338ca; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; }
+        .error-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; padding: 12px 24px; border-radius: 12px; z-index: 10000; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
+        .gemini-gradient { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%); }
+    </style>
+</head>
+<body class="bg-slate-50 antialiased text-slate-900">
+
+    <div id="error-msg" class="error-toast"></div>
+
+    <div id="splash-screen">
+        <div class="bg-white p-5 rounded-[2rem] shadow-2xl animate-pulse">
+            <i data-lucide="sparkles" class="text-indigo-600 w-12 h-12"></i>
+        </div>
+        <h1 class="text-white mt-6 text-2xl font-black italic tracking-tighter uppercase">Gemini Receipt AI</h1>
+    </div>
+
+    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col hidden">
+        <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 p-6 sticky top-0 z-30 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="gemini-gradient p-2 rounded-xl text-white shadow-lg"><i data-lucide="sparkles" class="w-4 h-4"></i></div>
+                <h1 class="text-xl font-black tracking-tighter">AI 收據管家</h1>
+            </div>
+            <div id="drive-status">
+                <button onclick="handleAuthClick()" class="bg-slate-100 text-slate-600 p-2 rounded-full border border-slate-200">
+                    <i data-lucide="cloud-off" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </header>
+
+        <main id="main-content" class="p-4 flex-1 safe-pb">
+            <!-- 內容動態注入 -->
+        </main>
+
+        <nav class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-[360px] bg-slate-900/90 backdrop-blur-2xl rounded-[32px] p-2 flex justify-around items-center shadow-2xl border border-white/10 z-40">
+            <button onclick="renderView('list')" class="nav-btn flex-1 py-4 flex flex-col items-center text-slate-500" id="nav-list">
+                <i data-lucide="layout-list" class="w-5 h-5"></i>
+                <span class="text-[8px] mt-1 font-black uppercase tracking-widest">紀錄</span>
+            </button>
+            <button onclick="openAddView()" class="w-14 h-14 gemini-gradient text-white rounded-2xl flex items-center justify-center shadow-xl -mt-10 border-4 border-white active:scale-95 transition-all">
+                <i data-lucide="plus" class="w-8 h-8"></i>
+            </button>
+            <button onclick="renderView('stats')" class="nav-btn flex-1 py-4 flex flex-col items-center text-slate-500" id="nav-stats">
+                <i data-lucide="brain-circuit" class="w-5 h-5"></i>
+                <span class="text-[8px] mt-1 font-black uppercase tracking-widest">分析</span>
+            </button>
+        </nav>
+    </div>
+
+    <canvas id="compress-canvas" class="hidden"></canvas>
+
+    <script>
+        // --- 設定區 ---
+        // 重要：請確保在此填寫正確的憑證
+        const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; 
+        const API_KEY = 'YOUR_API_KEY'; 
+        const GEMINI_KEY = ""; // 執行環境會自動提供 API Key
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+        let tokenClient;
+        let accessToken = null;
+        let folderId = null;
+        let records = JSON.parse(localStorage.getItem('receipt_records') || '[]');
+        let aiInsight = "正在分析你的消費習慣...";
+
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            el.innerText = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        // --- Gemini API 整合 ---
+        async function callGemini(prompt, imageData = null) {
+            const apiKey = GEMINI_KEY || ""; 
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const parts = [{ text: prompt }];
+            if (imageData) {
+                parts.push({ inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } });
+            }
+
+            // 指數退避重試機制
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    return JSON.parse(data.candidates[0].content.parts[0].text);
+                } catch (e) {
+                    if (i === 4) {
+                        showError("Gemini API 調用失敗，請稍後再試。");
+                        return null;
+                    }
+                    await new Promise(res => setTimeout(res, Math.pow(2, i) * 1000));
+                }
+            }
+        }
+
+        async function getAIInsight() {
+            if (records.length === 0) return "開始拍攝收據，讓 AI 幫你理財！";
+            const summary = records.slice(0, 10).map(r => `${r.date}: $${r.amount} (${r.category})`).join(', ');
+            const prompt = `你是一個幽默的理財教練。根據以下消費紀錄提供一句簡短的建議（50字以內，繁體中文）：${summary}. Output JSON: {"insight": "string"}`;
+            const result = await callGemini(prompt);
+            return result ? result.insight : "今天也是省錢的一天呢！";
+        }
+
+        // --- Google Drive 整合 (修復版) ---
+        function initGapiClient() {
+            gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            }).then(() => {
+                console.log("GAPI client initialized");
+            }).catch(err => {
+                console.error("GAPI Init Fail", err);
+                showError("Google API 初始化失敗，請檢查 API_KEY 是否正確。");
+            });
+        }
+
+        async function gapiLoaded() {
+            // 確保 gapi 加載後再執行
+            let checkGapi = setInterval(() => {
+                if (typeof gapi !== 'undefined') {
+                    clearInterval(checkGapi);
+                    gapi.load('client', initGapiClient);
+                }
+            }, 100);
+        }
+
+        function gisLoaded() {
+            let checkGis = setInterval(() => {
+                if (typeof google !== 'undefined' && google.accounts) {
+                    clearInterval(checkGis);
+                    tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: CLIENT_ID,
+                        scope: SCOPES,
+                        callback: (resp) => {
+                            if (resp.error) return showError("授權失敗: " + resp.error);
+                            accessToken = resp.access_token;
+                            updateDriveUI(true);
+                            ensureFolder();
+                        },
+                    });
+                }
+            }, 100);
+        }
+
+        function handleAuthClick() {
+            if (!tokenClient) return showError("授權服務尚未準備就緒，請稍候。");
+            if (CLIENT_ID.includes('YOUR')) return showError("請先在代碼中設定正確的 Client ID");
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+
+        function updateDriveUI(isLoggedIn) {
+            const status = document.getElementById('drive-status');
+            status.innerHTML = isLoggedIn ? 
+                `<div class="bg-green-500 p-2 rounded-full text-white shadow-lg"><i data-lucide="cloud-check" class="w-4 h-4"></i></div>` : 
+                `<button onclick="handleAuthClick()" class="bg-slate-100 text-slate-600 p-2 rounded-full border border-slate-200"><i data-lucide="log-in" class="w-4 h-4"></i></button>`;
+            lucide.createIcons();
+        }
+
+        async function ensureFolder() {
+            if (!accessToken) return;
+            try {
+                const response = await gapi.client.drive.files.list({ q: "name = 'AI_Receipt_Backups' and mimeType = 'application/vnd.google-apps.folder' and trashed = false" });
+                if (response.result.files.length > 0) folderId = response.result.files[0].id;
+                else {
+                    const res = await gapi.client.drive.files.create({ resource: { 'name': 'AI_Receipt_Backups', 'mimeType': 'application/vnd.google-apps.folder' } });
+                    folderId = res.result.id;
+                }
+            } catch (e) { showError("雲端資料夾同步失敗"); }
+        }
+
+        async function uploadToDrive(fileName, content, mimeType) {
+            if (!accessToken || !folderId) return;
+            const fileMetadata = { 'name': fileName, 'parents': [folderId] };
+            let blob;
+            if (mimeType === 'image/jpeg') {
+                const byteString = atob(content.split(',')[1]);
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+                blob = new Blob([ab], { type: 'image/jpeg' });
+            } else {
+                blob = new Blob([content], { type: mimeType });
+            }
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+            form.append('file', blob);
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken }, body: form
+            });
+        }
+
+        // --- 介面渲染 ---
+        async function renderView(view) {
+            const container = document.getElementById('main-content');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.replace('text-indigo-600', 'text-slate-500'));
+            const activeNav = document.getElementById(`nav-${view}`);
+            if(activeNav) activeNav.classList.replace('text-slate-500', 'text-indigo-600');
+
+            if (view === 'list') {
+                if (records.length > 0 && aiInsight.includes("正在分析")) {
+                    aiInsight = await getAIInsight();
+                }
+                container.innerHTML = `
+                    <div class="space-y-6 animate-in fade-in duration-500">
+                        <!-- ✨ AI Insight Card -->
+                        <div class="gemini-gradient p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden group">
+                            <div class="absolute -right-4 -top-4 opacity-20 group-hover:scale-110 transition-transform">
+                                <i data-lucide="sparkles" class="w-24 h-24"></i>
+                            </div>
+                            <div class="relative z-10">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i data-lucide="brain-circuit" class="w-4 h-4"></i>
+                                    <span class="text-[10px] font-black uppercase tracking-widest">✨ AI 智慧理財建議</span>
+                                </div>
+                                <p class="text-sm font-medium italic">"${aiInsight}"</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center px-1">
+                                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">近期消費</h3>
+                                <span class="text-[10px] bg-slate-200 px-2 py-0.5 rounded-full font-bold">${records.length} 筆</span>
+                            </div>
+                            ${records.length === 0 ? `
+                                <div class="py-20 text-center text-slate-300 font-black uppercase text-xs flex flex-col items-center">
+                                    <i data-lucide="inbox" class="w-12 h-12 mb-4 opacity-20"></i>
+                                    暫無紀錄
+                                </div>
+                            ` : records.map(r => `
+                                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 active:scale-[0.98] transition-all">
+                                    <div class="relative">
+                                        <img src="${r.image}" class="w-14 h-14 rounded-xl object-cover border border-slate-50 shadow-sm">
+                                        <div class="absolute -top-2 -right-2 bg-indigo-600 text-[8px] text-white px-1.5 py-0.5 rounded-md font-bold">${r.category}</div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-[10px] font-bold text-slate-400 mb-1">${r.date}</div>
+                                        <div class="text-xl font-black text-slate-800">$${r.amount.toLocaleString()}</div>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-200"></i>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>`;
+            } else if (view === 'stats') {
+                const total = records.reduce((s, r) => s + r.amount, 0);
+                container.innerHTML = `
+                    <div class="space-y-6 animate-in fade-in duration-500">
+                        <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 text-center">
+                            <div class="w-20 h-20 gemini-gradient rounded-3xl mx-auto flex items-center justify-center text-white shadow-lg mb-6">
+                                <i data-lucide="pie-chart" class="w-10 h-10"></i>
+                            </div>
+                            <h2 class="text-3xl font-black mb-1">$${total.toLocaleString()}</h2>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">本月總支出</p>
+                            
+                            <div class="mt-8 pt-8 border-t border-slate-50 space-y-4">
+                                <button onclick="manualSync()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2">
+                                    <i data-lucide="cloud-upload" class="w-4 h-4"></i> 全面同步至雲端
+                                </button>
+                                <button onclick="askAIAboutSpending()" class="w-full py-4 bg-white border-2 border-indigo-100 text-indigo-600 rounded-2xl font-black text-sm flex items-center justify-center gap-2">
+                                    <i data-lucide="message-square" class="w-4 h-4"></i> ✨ 詢問 AI 消費狀況
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+            lucide.createIcons();
+        }
+
+        async function openAddView() {
+            const container = document.getElementById('main-content');
+            container.innerHTML = `
+                <div class="bg-white rounded-[2.5rem] p-6 shadow-xl border border-slate-100 animate-in slide-in-from-bottom-8">
+                    <div id="capture-zone" class="aspect-[3/4] bg-slate-50 rounded-[2rem] overflow-hidden flex flex-col items-center justify-center relative border-2 border-dashed border-slate-200">
+                        <i data-lucide="camera" class="w-10 h-10 mb-4 text-slate-300"></i>
+                        <p class="text-xs font-bold text-slate-400 mb-6">對準收據拍攝</p>
+                        <button onclick="triggerCamera()" class="gemini-gradient text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg active:scale-95 transition-all">
+                            開啟相機
+                        </button>
+                    </div>
+                    <div id="ai-result" class="hidden mt-6 space-y-4">
+                        <div class="flex gap-2 mb-2" id="ai-tags"></div>
+                        <div class="relative">
+                             <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-300 text-xl">$</span>
+                             <input id="ai-amount" type="number" class="w-full pl-10 pr-5 py-5 bg-slate-50 rounded-2xl text-3xl font-black outline-none focus:ring-4 ring-indigo-500/10">
+                        </div>
+                        <button id="save-btn" class="w-full py-5 gemini-gradient text-white rounded-2xl font-black shadow-xl flex items-center justify-center gap-2">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i> ✨ 智能儲存並備份
+                        </button>
+                    </div>
+                </div>`;
+            lucide.createIcons();
+        }
+
+        async function triggerCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.createElement('video');
+                video.srcObject = stream; video.play();
+                const zone = document.getElementById('capture-zone');
+                zone.innerHTML = ''; zone.appendChild(video); video.className = "w-full h-full object-cover rounded-[2rem]";
+                
+                const snapBtn = document.createElement('button');
+                snapBtn.className = "absolute bottom-8 left-1/2 -translate-x-1/2 w-20 h-20 bg-white rounded-full border-[6px] border-indigo-600/20 shadow-2xl active:scale-90 transition-all flex items-center justify-center";
+                snapBtn.innerHTML = '<div class="w-12 h-12 bg-indigo-600 rounded-full"></div>';
+                
+                snapBtn.onclick = async () => {
+                    const canvas = document.getElementById('compress-canvas');
+                    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                    stream.getTracks().forEach(t => t.stop());
+                    
+                    zone.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain"><div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center text-white"><div class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div><p class="font-black text-sm tracking-widest animate-pulse">✨ AI 深度分析中...</p></div>`;
+                    
+                    // ✨ Gemini 智能識別
+                    const prompt = `分析收據。輸出 JSON: {"amount": number, "category": "餐飲|交通|購物|娛樂|其他", "shop": "string"}`;
+                    const aiData = await callGemini(prompt, dataUrl);
+                    
+                    document.getElementById('ai-result').classList.remove('hidden');
+                    document.getElementById('ai-amount').value = aiData?.amount || 0;
+                    document.getElementById('ai-tags').innerHTML = `
+                        <span class="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase"># ${aiData?.category || '未分類'}</span>
+                        <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-black">@ ${aiData?.shop || '未知商店'}</span>
+                    `;
+
+                    document.getElementById('save-btn').onclick = async () => {
+                        const newRec = { 
+                            id: Date.now(), 
+                            amount: parseFloat(document.getElementById('ai-amount').value), 
+                            date: new Date().toLocaleDateString('zh-HK'), 
+                            category: aiData?.category || '一般', 
+                            image: dataUrl,
+                            shop: aiData?.shop || '未知商店'
+                        };
+                        records = [newRec, ...records];
+                        localStorage.setItem('receipt_records', JSON.stringify(records));
+                        aiInsight = "正在重新分析你的消費..."; 
+                        
+                        if (accessToken) {
+                            uploadToDrive(`Receipt_${newRec.id}.jpg`, dataUrl, 'image/jpeg');
+                            uploadToDrive(`Receipt_${newRec.id}.json`, JSON.stringify(newRec), 'application/json');
+                        }
+                        renderView('list');
+                    };
+                };
+                zone.appendChild(snapBtn);
+            } catch (e) { showError("無法開啟相機，請檢查權限"); }
+        }
+
+        async function askAIAboutSpending() {
+            const question = prompt("你可以詢問：\n- 我最近在咖啡上花了多少？\n- 我該如何省錢？\n\n輸入你的問題：");
+            if (!question) return;
+            
+            const context = records.map(r => `${r.category}: $${r.amount} (${r.shop})`).join('; ');
+            const promptStr = `使用者問：${question}。背景數據：${context}。請簡短回答（繁體中文）。JSON: {"answer": "string"}`;
+            
+            showError("✨ AI 正在思考...");
+            const result = await callGemini(promptStr);
+            if (result) alert("✨ AI 助手回答：\n\n" + result.answer);
+        }
+
+        async function manualSync() {
+            if (!accessToken) return showError("尚未連結雲端");
+            alert("正在全力備份所有數據至 Drive...");
+            for (let r of records) await uploadToDrive(`Manual_Backup_${r.id}.jpg`, r.image, 'image/jpeg');
+            alert("備份成功！");
+        }
+
+        window.onload = () => { 
+            lucide.createIcons(); 
+            gapiLoaded(); 
+            gisLoaded(); 
+            setTimeout(() => { 
+                document.getElementById('splash-screen').style.opacity = '0'; 
+                setTimeout(() => { 
+                    document.getElementById('splash-screen').remove(); 
+                    document.getElementById('app').classList.remove('hidden'); 
+                    renderView('list'); 
+                }, 500); 
+            }, 1500); 
+        };
+    </script>
+</body>
+</html>
