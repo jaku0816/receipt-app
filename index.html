@@ -1,12 +1,15 @@
-<!DOCTYPE html>
+
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI 收據管家 - 終極修復版</title>
+    <title>AI 收據管家 - 終極穩定版</title>
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 加載必要套件 -->
+    <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/lucide@latest" crossorigin="anonymous"></script>
+    
+    <!-- Google API 腳本 -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
 
@@ -16,52 +19,44 @@
         #splash-screen { position: fixed; inset: 0; background: #4338ca; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; }
         .error-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; padding: 12px 24px; border-radius: 12px; z-index: 10000; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
         .gemini-gradient { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%); }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(226, 232, 240, 0.8); }
         video { width: 100%; height: 100%; object-fit: cover; border-radius: 2rem; }
-        
-        /* 動畫 */
-        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
-        .float-icon { animation: float 3s ease-in-out infinite; }
     </style>
 </head>
 <body class="bg-slate-50 antialiased text-slate-900">
 
     <div id="error-msg" class="error-toast"></div>
 
-    <!-- 啟動動畫 -->
+    <!-- 啟動畫面 -->
     <div id="splash-screen">
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-2xl float-icon">
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-2xl animate-bounce">
             <i data-lucide="sparkles" class="text-indigo-600 w-12 h-12"></i>
         </div>
         <h1 class="text-white mt-8 text-2xl font-black italic tracking-tighter uppercase">Gemini Receipt AI</h1>
-        <p class="text-indigo-200 text-xs mt-2 font-bold tracking-widest animate-pulse">系統初始化中...</p>
     </div>
 
     <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col hidden">
-        <!-- 頂部 Header -->
-        <header class="glass p-6 sticky top-0 z-30 flex justify-between items-center border-b border-slate-200">
+        <!-- 頂部導航 -->
+        <header class="glass p-6 sticky top-0 z-30 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="gemini-gradient p-2 rounded-xl text-white shadow-lg"><i data-lucide="scan-line" class="w-5 h-5"></i></div>
                 <div>
-                    <h1 class="text-lg font-black tracking-tighter leading-none">AI 收據管家</h1>
-                    <span id="connection-badge" class="text-[9px] font-bold text-slate-400 uppercase">離線模式</span>
+                    <h1 class="text-lg font-black tracking-tighter leading-none uppercase">AI 收據管家</h1>
+                    <span id="connection-badge" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">離線模式</span>
                 </div>
             </div>
-            <div id="drive-status" class="flex items-center">
+            <div id="drive-status">
                 <button onclick="handleAuthClick()" class="bg-slate-100 text-slate-400 p-2 rounded-full hover:bg-indigo-50 hover:text-indigo-600 transition-all">
                     <i data-lucide="cloud-off" class="w-5 h-5"></i>
                 </button>
             </div>
         </header>
 
-        <!-- 主要視窗 -->
-        <main id="main-content" class="p-5 flex-1 safe-pb">
-            <!-- 動態載入內容 -->
-        </main>
+        <main id="main-content" class="p-5 flex-1 safe-pb"></main>
 
-        <!-- 底部導航 -->
+        <!-- 底部選單 -->
         <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[380px] bg-slate-900/95 backdrop-blur-2xl rounded-[32px] p-2.5 flex justify-around items-center shadow-2xl border border-white/10 z-40">
-            <button onclick="renderView('list')" class="nav-btn flex-1 py-3 flex flex-col items-center text-slate-500 transition-all" id="nav-list">
+            <button onclick="renderView('list')" class="nav-btn flex-1 py-3 flex flex-col items-center text-slate-500" id="nav-list">
                 <i data-lucide="scroll-text" class="w-5 h-5"></i>
                 <span class="text-[9px] mt-1 font-black uppercase tracking-widest">歷史</span>
             </button>
@@ -70,7 +65,7 @@
                 <i data-lucide="plus" class="w-8 h-8"></i>
             </button>
             
-            <button onclick="renderView('stats')" class="nav-btn flex-1 py-3 flex flex-col items-center text-slate-500 transition-all" id="nav-stats">
+            <button onclick="renderView('stats')" class="nav-btn flex-1 py-3 flex flex-col items-center text-slate-500" id="nav-stats">
                 <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                 <span class="text-[9px] mt-1 font-black uppercase tracking-widest">管理</span>
             </button>
@@ -80,26 +75,141 @@
     <canvas id="compress-canvas" class="hidden"></canvas>
 
     <script>
-        // --- 設定 (已更新為您的憑證) ---
+        // 全局錯誤攔截
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.warn("Caught Global Error: ", message);
+            if (message === "Script error.") return true;
+            return false; 
+        };
+
+        // ================= CONFIG =================
+        // ⚠️ 請確保 CLIENT_ID 正確
         const CLIENT_ID = '637639559979-mr31v0r5m1vu38l35h52vftm8bku26e7.apps.googleusercontent.com'; 
-        const API_KEY = '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'; 
-        const GEMINI_KEY = ""; // 由環境提供
+        
+        // ❌ 之前的 GOCSPX-... 是 Client Secret，不是 API Key。
+        // ✅ 請到 Google Cloud Console > 憑證 > 建立憑證 > API 金鑰，獲取後填入下方。
+        const API_KEY = ''; 
+        
+        const GEMINI_KEY = ""; // 系統自動注入
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
         let tokenClient;
         let accessToken = null;
         let folderId = null;
         let records = JSON.parse(localStorage.getItem('receipt_records') || '[]');
-        let aiInsight = "正在透過 Gemini 分析你的開支趨勢...";
+        let aiInsight = "正在分析你的消費模式...";
 
         function showError(msg) {
             const el = document.getElementById('error-msg');
+            if (!el) return;
             el.innerText = msg;
             el.style.display = 'block';
             setTimeout(() => el.style.display = 'none', 5000);
         }
 
-        // --- Gemini AI ---
+        // ================= GOOGLE API 邏輯 =================
+
+        function initGapiClient() {
+            if (!API_KEY) {
+                console.warn("GAPI: 未偵測到 API_KEY，功能可能受限。");
+                return;
+            }
+            gapi.client.init({ 
+                apiKey: API_KEY, 
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] 
+            }).catch(e => {
+                console.error("GAPI Init Error:", e);
+                showError("API 金鑰無效，請檢查 Google Cloud 設定。");
+            });
+        }
+
+        function gapiLoaded() {
+            const checkGapi = setInterval(() => {
+                if (typeof gapi !== 'undefined') {
+                    clearInterval(checkGapi);
+                    gapi.load('client', initGapiClient);
+                }
+            }, 500);
+        }
+
+        function gisLoaded() {
+            const checkGis = setInterval(() => {
+                if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+                    clearInterval(checkGis);
+                    tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: CLIENT_ID,
+                        scope: SCOPES,
+                        callback: (resp) => {
+                            if (resp.error) return showError("授權失敗: " + resp.error);
+                            accessToken = resp.access_token;
+                            updateDriveUI(true);
+                            ensureFolder();
+                        }
+                    });
+                }
+            }, 500);
+        }
+
+        function handleAuthClick() {
+            if (!tokenClient) return showError("登入模組載入中，請稍候...");
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+
+        function updateDriveUI(isLoggedIn) {
+            const status = document.getElementById('drive-status');
+            const badge = document.getElementById('connection-badge');
+            if (isLoggedIn && status && badge) {
+                status.innerHTML = `<div class="bg-green-500 p-2 rounded-full text-white shadow-lg"><i data-lucide="cloud-check" class="w-4 h-4"></i></div>`;
+                badge.innerText = "已連結 Google Drive";
+                badge.className = "text-[9px] font-bold text-green-500 uppercase tracking-widest";
+                lucide.createIcons();
+            }
+        }
+
+        async function ensureFolder() {
+            try {
+                const res = await gapi.client.drive.files.list({ q: "name = 'AI_Receipt_Backups' and mimeType = 'application/vnd.google-apps.folder' and trashed = false" });
+                if (res.result.files && res.result.files.length > 0) {
+                    folderId = res.result.files[0].id;
+                } else {
+                    const f = await gapi.client.drive.files.create({ resource: { 'name': 'AI_Receipt_Backups', 'mimeType': 'application/vnd.google-apps.folder' } });
+                    folderId = f.result.id;
+                }
+            } catch (e) {
+                console.warn("Drive 資料夾同步失敗", e);
+            }
+        }
+
+        async function uploadToDrive(fileName, content, mimeType) {
+            if (!accessToken || !folderId) return;
+            try {
+                const fileMetadata = { 'name': fileName, 'parents': [folderId] };
+                let blob;
+                if (mimeType === 'image/jpeg') {
+                    const b = atob(content.split(',')[1]);
+                    const ia = new Uint8Array(b.length);
+                    for (let i = 0; i < b.length; i++) ia[i] = b.charCodeAt(i);
+                    blob = new Blob([ia], { type: 'image/jpeg' });
+                } else {
+                    blob = new Blob([content], { type: mimeType });
+                }
+                
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+                form.append('file', blob);
+                
+                await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST', 
+                    headers: { 'Authorization': 'Bearer ' + accessToken }, 
+                    body: form
+                });
+            } catch (e) {
+                console.error("上傳至雲端失敗", e);
+            }
+        }
+
+        // ================= GEMINI AI 邏輯 =================
+
         async function callGemini(prompt, imageData = null) {
             const apiKey = GEMINI_KEY || "";
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -113,90 +223,22 @@
                     body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: "application/json" } })
                 });
                 const data = await response.json();
-                return JSON.parse(data.candidates[0].content.parts[0].text);
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    return JSON.parse(data.candidates[0].content.parts[0].text);
+                }
+                return null;
             } catch (e) {
-                console.error(e);
+                console.error("AI 分析失敗", e);
                 return null;
             }
         }
 
-        // --- Google Drive 修復初始化 ---
-        function initGapiClient() {
-            gapi.client.init({ apiKey: API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] })
-                .catch(e => {
-                    console.error("GAPI Init Fail", e);
-                    showError("Google API 初始化失敗，請檢查 API Key 設定。");
-                });
-        }
+        // ================= 視圖渲染邏輯 =================
 
-        function gapiLoaded() {
-            let t = setInterval(() => { if(typeof gapi !== 'undefined') { clearInterval(t); gapi.load('client', initGapiClient); } }, 200);
-        }
-
-        function gisLoaded() {
-            let t = setInterval(() => { if(typeof google !== 'undefined' && google.accounts) { 
-                clearInterval(t); 
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: CLIENT_ID, scope: SCOPES,
-                    callback: (resp) => {
-                        if (resp.error) return showError("授權失敗: " + resp.error);
-                        accessToken = resp.access_token;
-                        updateDriveUI(true);
-                        ensureFolder();
-                    }
-                });
-            } }, 200);
-        }
-
-        function handleAuthClick() {
-            if (!tokenClient) return showError("授權組件尚未載入");
-            tokenClient.requestAccessToken({ prompt: 'consent' });
-        }
-
-        function updateDriveUI(isLoggedIn) {
-            const status = document.getElementById('drive-status');
-            const badge = document.getElementById('connection-badge');
-            if (isLoggedIn) {
-                status.innerHTML = `<div class="bg-green-500 p-2 rounded-full text-white shadow-lg"><i data-lucide="cloud-check" class="w-4 h-4"></i></div>`;
-                badge.innerText = "已連結 Google Drive";
-                badge.className = "text-[9px] font-bold text-green-500 uppercase";
-            }
-            lucide.createIcons();
-        }
-
-        async function ensureFolder() {
-            try {
-                const res = await gapi.client.drive.files.list({ q: "name = 'AI_Receipt_Backups' and mimeType = 'application/vnd.google-apps.folder' and trashed = false" });
-                if (res.result.files.length > 0) folderId = res.result.files[0].id;
-                else {
-                    const f = await gapi.client.drive.files.create({ resource: { 'name': 'AI_Receipt_Backups', 'mimeType': 'application/vnd.google-apps.folder' } });
-                    folderId = f.result.id;
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        async function uploadToDrive(fileName, content, mimeType) {
-            if (!accessToken || !folderId) return;
-            const fileMetadata = { 'name': fileName, 'parents': [folderId] };
-            let blob;
-            if (mimeType === 'image/jpeg') {
-                const b = atob(content.split(',')[1]);
-                const ia = new Uint8Array(b.length);
-                for (let i = 0; i < b.length; i++) ia[i] = b.charCodeAt(i);
-                blob = new Blob([ia], { type: 'image/jpeg' });
-            } else blob = new Blob([content], { type: mimeType });
-            
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-            form.append('file', blob);
-            fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken }, body: form
-            });
-        }
-
-        // --- 視圖渲染 ---
         async function renderView(view) {
             const container = document.getElementById('main-content');
+            if (!container) return;
+            
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.replace('text-indigo-600', 'text-slate-400'));
             const activeNav = document.getElementById(`nav-${view}`);
             if(activeNav) activeNav.classList.replace('text-slate-400', 'text-indigo-600');
@@ -207,25 +249,20 @@
                         <div class="gemini-gradient p-6 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
                             <i data-lucide="sparkles" class="absolute -right-4 -top-4 w-28 h-28 opacity-10 group-hover:scale-110 transition-transform"></i>
                             <div class="relative z-10">
-                                <span class="text-[10px] font-black tracking-widest opacity-60 uppercase">Gemini 智慧洞察</span>
+                                <span class="text-[10px] font-black tracking-widest opacity-60 uppercase">AI 財務週報</span>
                                 <p class="text-sm font-bold mt-2 leading-relaxed">"${aiInsight}"</p>
                             </div>
                         </div>
-
                         <div class="space-y-4">
-                            <div class="flex justify-between items-end px-1">
-                                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">消費明細</h3>
-                                <span class="text-[10px] text-slate-300 font-bold">${records.length} 筆項目</span>
-                            </div>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">最近支出</h3>
                             ${records.length === 0 ? '<div class="py-24 text-center text-slate-300 text-xs font-black italic uppercase">目前無任何數據</div>' : records.map(r => `
-                                <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 active:scale-95 transition-all">
-                                    <img src="${r.image}" class="w-16 h-16 rounded-2xl object-cover border border-slate-50">
+                                <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center gap-4">
+                                    <img src="${r.image}" class="w-16 h-16 rounded-2xl object-cover" onerror="this.src='https://via.placeholder.com/64?text=Receipt'">
                                     <div class="flex-1">
-                                        <div class="text-[9px] font-black text-indigo-500 uppercase tracking-tighter mb-1">${r.category} • ${r.date}</div>
+                                        <div class="text-[9px] font-black text-indigo-500 uppercase mb-1">${r.category} • ${r.date}</div>
                                         <div class="text-xl font-black text-slate-800">$${r.amount.toLocaleString()}</div>
-                                        <div class="text-[10px] text-slate-400 font-medium">${r.shop || '一般商家'}</div>
+                                        <div class="text-[10px] text-slate-400 font-medium">${r.shop || '商店'}</div>
                                     </div>
-                                    <i data-lucide="chevron-right" class="text-slate-200 w-5 h-5"></i>
                                 </div>
                             `).join('')}
                         </div>
@@ -240,22 +277,26 @@
                             <p class="text-[10px] text-slate-400 font-black tracking-widest uppercase mt-2">本期總開支</p>
                         </div>
 
-                        <!-- 修復建議與開發助手區 -->
-                        <div class="bg-indigo-900 rounded-[2.5rem] p-6 text-white shadow-2xl">
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="bg-white/10 p-2 rounded-lg"><i data-lucide="terminal" class="w-4 h-4 text-indigo-300"></i></div>
-                                <h3 class="font-black text-sm uppercase tracking-widest">開發與設定助手</h3>
+                        <div class="bg-slate-900 rounded-[2.5rem] p-7 text-white shadow-2xl">
+                            <div class="flex items-center gap-3 mb-5">
+                                <div class="bg-red-500/20 p-2 rounded-xl text-red-400"><i data-lucide="alert-circle" class="w-5 h-5"></i></div>
+                                <h3 class="font-black text-sm uppercase tracking-widest">GAPI 錯誤修復指南</h3>
                             </div>
                             <div class="space-y-4">
                                 <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
-                                    <p class="text-[10px] font-bold text-indigo-300 mb-2 uppercase">1. 本地伺服器檢查</p>
-                                    <p class="text-xs text-indigo-100 leading-relaxed">當前網址：<span class="font-mono text-indigo-300">${window.location.origin}</span><br>若為 <span class="underline">file://</span> 則無法執行 Google 登入。請在 VS Code 點擊右下角 <span class="bg-indigo-600 px-1 rounded">Go Live</span>。</p>
+                                    <p class="text-[11px] text-slate-300 leading-relaxed mb-3">你得到的錯誤是因為代碼中填寫的是 <b>Client Secret</b> 而非 <b>API Key</b>。</p>
+                                    <ol class="text-[10px] text-slate-400 list-decimal ml-4 space-y-2">
+                                        <li>前往 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-indigo-400 underline">Google Cloud 控制台</a></li>
+                                        <li>點擊「建立憑證」 > 「API 金鑰」</li>
+                                        <li>複製該金鑰並替換代碼中的 <code>const API_KEY = '...'</code></li>
+                                        <li>並確認該金鑰已啟用 <b>Google Drive API</b> 權限</li>
+                                    </ol>
                                 </div>
                                 <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
-                                    <p class="text-[10px] font-bold text-indigo-300 mb-2 uppercase">2. Google Cloud 設定</p>
-                                    <p class="text-xs text-indigo-100 leading-relaxed">請確認將此網址加入到「已授權的 JavaScript 來源」。目前的 Client ID 已填入代碼中。</p>
+                                    <p class="text-[10px] font-bold text-indigo-400 mb-1 uppercase tracking-wider">本地伺服器狀態</p>
+                                    <p class="text-[11px] text-slate-300 leading-relaxed font-mono">${window.location.origin}</p>
                                 </div>
-                                <button onclick="window.location.reload()" class="w-full py-4 bg-white text-indigo-900 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">重新初始化系統</button>
+                                <button onclick="window.location.reload()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all">套用設定並重啟</button>
                             </div>
                         </div>
                     </div>`;
@@ -266,19 +307,15 @@
         async function openAddView() {
             const container = document.getElementById('main-content');
             container.innerHTML = `
-                <div class="bg-white rounded-[2.5rem] p-6 shadow-2xl border border-slate-100 animate-in slide-in-from-bottom-12 duration-500">
+                <div class="bg-white rounded-[2.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom-12">
                     <div id="capture-zone" class="aspect-[4/5] bg-slate-50 rounded-[2rem] overflow-hidden flex flex-col items-center justify-center relative border-2 border-dashed border-slate-200">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm mb-4"><i data-lucide="camera" class="w-10 h-10 text-indigo-500"></i></div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">掃描實體收據</p>
-                        <button onclick="triggerCamera()" class="gemini-gradient text-white px-10 py-4 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all">啟動智能辨識</button>
+                        <i data-lucide="camera" class="w-10 h-10 mb-4 text-indigo-500"></i>
+                        <button onclick="triggerCamera()" class="gemini-gradient text-white px-10 py-4 rounded-2xl font-black text-sm shadow-xl active:scale-95">啟動智能辨識</button>
                     </div>
-                    <div id="ai-result" class="hidden mt-6 space-y-4 animate-in fade-in">
+                    <div id="ai-result" class="hidden mt-6 space-y-4">
                         <div id="ai-tags" class="flex gap-2"></div>
-                        <div class="relative">
-                             <span class="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-300 text-2xl">$</span>
-                             <input id="ai-amount" type="number" class="w-full pl-12 pr-6 py-6 bg-slate-50 rounded-2xl text-4xl font-black outline-none focus:ring-4 ring-indigo-500/10">
-                        </div>
-                        <button id="save-btn" class="w-full py-5 gemini-gradient text-white rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
+                        <input id="ai-amount" type="number" class="w-full p-6 bg-slate-50 rounded-2xl text-4xl font-black outline-none focus:ring-4 ring-indigo-500/10" placeholder="0">
+                        <button id="save-btn" class="w-full py-5 gemini-gradient text-white rounded-2xl font-black shadow-xl flex items-center justify-center gap-2">
                              <i data-lucide="sparkles" class="w-5 h-5"></i> 智能存檔並同步
                         </button>
                     </div>
@@ -290,13 +327,15 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 const video = document.createElement('video');
-                video.srcObject = stream; video.play();
+                video.srcObject = stream; 
+                video.onloadedmetadata = () => video.play();
+                
                 const zone = document.getElementById('capture-zone');
                 zone.innerHTML = ''; zone.appendChild(video);
                 
                 const btn = document.createElement('button');
-                btn.className = "absolute bottom-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-white/20 backdrop-blur-md rounded-full border-4 border-white shadow-2xl flex items-center justify-center z-50 active:scale-75 transition-all";
-                btn.innerHTML = '<div class="w-14 h-14 bg-white rounded-full shadow-inner"></div>';
+                btn.className = "absolute bottom-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-white/20 backdrop-blur-md rounded-full border-4 border-white flex items-center justify-center z-50 active:scale-75 transition-all";
+                btn.innerHTML = '<div class="w-14 h-14 bg-white rounded-full"></div>';
                 
                 btn.onclick = async () => {
                     const canvas = document.getElementById('compress-canvas');
@@ -305,16 +344,13 @@
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                     stream.getTracks().forEach(t => t.stop());
                     
-                    zone.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain"><div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center text-white"><div class="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mb-4"></div><p class="font-black text-xs uppercase tracking-[0.3em] animate-pulse">Gemini 辨識中</p></div>`;
+                    zone.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain"><div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center text-white"><div class="w-10 h-10 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mb-4"></div><p class="font-black text-xs uppercase tracking-widest animate-pulse">Gemini 辨識中</p></div>`;
                     
                     const aiData = await callGemini(`分析收據。JSON: {"amount": number, "category": "餐飲|交通|購物|娛樂|其他", "shop": "string"}`, dataUrl);
                     
                     document.getElementById('ai-result').classList.remove('hidden');
                     document.getElementById('ai-amount').value = aiData?.amount || 0;
-                    document.getElementById('ai-tags').innerHTML = `
-                        <span class="bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter"># ${aiData?.category || '未分類'}</span>
-                        <span class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-tighter">@ ${aiData?.shop || '商店'}</span>
-                    `;
+                    document.getElementById('ai-tags').innerHTML = `<span class="bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase"># ${aiData?.category || '未分類'}</span>`;
 
                     document.getElementById('save-btn').onclick = () => {
                         const newRec = { id: Date.now(), amount: parseFloat(document.getElementById('ai-amount').value), date: new Date().toLocaleDateString('zh-HK'), category: aiData?.category || '一般', image: dataUrl, shop: aiData?.shop || '商店' };
@@ -331,18 +367,23 @@
             } catch (e) { showError("無法獲取相機權限"); }
         }
 
+        // ================= 啟動程序 =================
+
         window.onload = () => {
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             gapiLoaded();
             gisLoaded();
+            
             setTimeout(() => {
-                document.getElementById('splash-screen').style.opacity = '0';
+                const splash = document.getElementById('splash-screen');
+                const app = document.getElementById('app');
+                if (splash) splash.style.opacity = '0';
                 setTimeout(() => {
-                    document.getElementById('splash-screen').remove();
-                    document.getElementById('app').classList.remove('hidden');
+                    if (splash) splash.remove();
+                    if (app) app.classList.remove('hidden');
                     renderView('list');
                 }, 500);
-            }, 1800);
+            }, 2000);
         };
     </script>
 </body>
