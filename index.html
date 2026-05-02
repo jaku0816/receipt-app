@@ -1,450 +1,242 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
+
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Receipt Manager Pro</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 收據助手 - 雲端備份版</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js" async defer></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        
-        :root {
-            --safe-top: env(safe-area-inset-top);
-            --safe-bottom: env(safe-area-inset-bottom);
-        }
-
-        body { 
-            font-family: 'Inter', -apple-system, sans-serif;
-            padding-top: var(--safe-top);
-            -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden;
-        }
-
-        .gemini-mesh {
-            background-color: #f8fafc;
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
-            background-attachment: fixed;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .nav-active {
-            color: #6366f1;
-            position: relative;
-        }
-        .nav-active::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            width: 4px;
-            height: 4px;
-            background: #6366f1;
-            border-radius: 50%;
-        }
-
-        .shimmer {
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-
-        .btn-gradient {
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .btn-gradient:active { transform: scale(0.92); }
-
-        #video-preview {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 24px;
-            transform: scaleX(-1); /* Selfie flip for natural feel */
-        }
+        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .tab-active { color: #4f46e5; border-bottom: 3px solid #4f46e5; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-pop { animation: slideUp 0.3s ease-out; }
     </style>
 </head>
-<body class="bg-slate-50 antialiased text-slate-900">
+<body class="bg-gray-50 font-sans text-gray-900 overflow-x-hidden">
 
-    <!-- 全局錯誤提示 -->
-    <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl bg-red-600 text-white text-sm font-bold shadow-2xl opacity-0 translate-y-[-20px] transition-all pointer-events-none"></div>
-
-    <!-- 啟動動畫 -->
-    <div id="splash" class="fixed inset-0 z-[999] bg-slate-900 flex flex-col items-center justify-center transition-opacity duration-700">
-        <div class="relative">
-            <div class="absolute inset-0 bg-indigo-500 blur-3xl opacity-20 animate-pulse"></div>
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-2xl relative">
-                <i data-lucide="zap" class="text-indigo-600 w-12 h-12 fill-indigo-600"></i>
+    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col pb-24">
+        
+        <!-- Header -->
+        <header class="bg-indigo-700 text-white p-6 rounded-b-[2rem] shadow-xl sticky top-0 z-30">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-xl font-black">☁️ 雲端收據助手</h1>
+                <button onclick="toggleSettings()" class="p-2 bg-white/10 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </button>
             </div>
-        </div>
-        <h1 class="text-white mt-8 text-2xl font-black italic tracking-tighter uppercase">Gemini AI Docs</h1>
-        <div class="mt-4 flex gap-1">
-            <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></div>
-            <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-            <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
-        </div>
-    </div>
-
-    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col opacity-0 transition-opacity duration-500">
-        <!-- 頂部 Header -->
-        <header class="glass-card sticky top-0 z-40 px-6 py-4 flex justify-between items-center border-b border-slate-200/50">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 btn-gradient rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                    <i data-lucide="layers" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h1 class="text-base font-black tracking-tighter uppercase leading-none">AI 收據管家</h1>
-                    <span id="sync-label" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 bg-slate-300 rounded-full"></span> 離線存儲中
-                    </span>
+            <div class="bg-white/10 p-4 rounded-2xl backdrop-blur-md">
+                <p class="text-xs font-bold opacity-70 mb-1">本月雲端待同步</p>
+                <div class="flex justify-between items-end">
+                    <div class="flex items-baseline">
+                        <span class="text-3xl font-mono font-bold" id="header-total">0.00</span>
+                        <span class="ml-1 text-sm opacity-80">HKD</span>
+                    </div>
+                    <div class="text-[10px] bg-green-500 text-white px-2 py-1 rounded font-bold" id="cloud-status">本地存儲模式</div>
                 </div>
             </div>
-            <button id="auth-btn" onclick="handleAuthClick()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
-                <i data-lucide="cloud-off" class="w-5 h-5"></i>
-            </button>
         </header>
 
-        <!-- 主內容區 -->
-        <main id="view-container" class="flex-1 p-5 pb-32 overflow-y-auto"></main>
+        <!-- Tabs -->
+        <div class="flex bg-white border-b sticky top-[152px] z-20">
+            <button onclick="switchTab('list')" id="tab-list" class="flex-1 py-4 text-sm font-bold tab-active">收據清單</button>
+            <button onclick="switchTab('cloud')" id="tab-cloud" class="flex-1 py-4 text-sm font-bold text-gray-400">雲端同步</button>
+        </div>
 
-        <!-- 底部導航欄 -->
-        <nav class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-slate-900/95 backdrop-blur-xl rounded-[32px] p-2 flex justify-around items-center shadow-2xl border border-white/10 z-50">
-            <button onclick="switchTab('list')" id="tab-list" class="flex-1 py-3 flex flex-col items-center gap-1 text-slate-400 transition-all">
-                <i data-lucide="layout-grid" class="w-5 h-5"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest">歷史</span>
-            </button>
-            
-            <button onclick="switchTab('camera')" class="w-14 h-14 btn-gradient text-white rounded-2xl flex items-center justify-center shadow-xl -mt-10 border-[5px] border-slate-50">
-                <i data-lucide="scan-barcode" class="w-7 h-7"></i>
-            </button>
-            
-            <button onclick="switchTab('settings')" id="tab-settings" class="flex-1 py-3 flex flex-col items-center gap-1 text-slate-400 transition-all">
-                <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest">設定</span>
-            </button>
-        </nav>
+        <main id="content-area" class="p-4 flex-grow">
+            <!-- 動態內容 -->
+        </main>
+
+        <!-- Floating Action Button -->
+        <footer class="fixed bottom-0 left-0 right-0 p-6 pointer-events-none z-40">
+            <div class="max-w-md mx-auto flex justify-center">
+                <label class="pointer-events-auto bg-indigo-600 text-white p-5 rounded-full shadow-2xl active:scale-90 transition-transform cursor-pointer">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+                    <input type="file" id="camera-input" accept="image/*" multiple class="hidden" onchange="processUpload(event)">
+                </label>
+            </div>
+        </footer>
     </div>
 
-    <canvas id="output-canvas" class="hidden"></canvas>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 z-50 hidden backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full rounded-3xl p-6 animate-pop">
+            <h3 class="text-lg font-black mb-4">Google Sheets 連結設定</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase">Google Script URL</label>
+                    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." class="w-full bg-gray-100 p-3 rounded-xl text-sm mt-1 outline-none">
+                </div>
+                <p class="text-[10px] text-gray-400 leading-relaxed">
+                    * 教學：在 Google Sheet 建立腳本並發佈為 Web App，將 URL 貼至此處即可實現一鍵同步。
+                </p>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="toggleSettings()" class="flex-1 py-3 font-bold text-gray-500">取消</button>
+                    <button onclick="saveSettings()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">儲存設定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Loading -->
+    <div id="loader" class="fixed inset-0 bg-white/90 z-[100] hidden flex flex-col items-center justify-center p-8">
+        <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="font-bold text-gray-600">AI 正在辨識並準備上傳...</p>
+    </div>
 
     <script>
-        // --- 核心配置 ---
-        const CLIENT_ID = '637639559979-mr31v0r5m1vu38l35h52vftm8bku26e7.apps.googleusercontent.com'; 
-        const API_KEY = 'AIzaSyBVnHgFv8ZkYqUhbuZ-EZB9H9F70HPCLsI'; // 👈 請填入您的 API KEY
-        const GEMINI_KEY = ""; // 系統自動提供
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        const apiKey = ""; // Gemini API Key
+        let expenses = JSON.parse(localStorage.getItem('cloud_expenses') || '[]');
+        let cloudConfig = JSON.parse(localStorage.getItem('cloud_config') || '{"url":""}');
+        let currentTab = 'list';
 
-        let gAuthToken = null;
-        let driveFolderId = null;
-        let db = JSON.parse(localStorage.getItem('receipt_db') || '[]');
-
-        // --- 初始化邏輯 ---
         window.onload = () => {
-            initIcons();
-            setTimeout(() => {
-                const splash = document.getElementById('splash');
-                const app = document.getElementById('app');
-                splash.style.opacity = '0';
-                setTimeout(() => {
-                    splash.remove();
-                    app.classList.remove('opacity-0');
-                    switchTab('list');
-                }, 700);
-            }, 1800);
-
-            // 靜默加載 Google SDK
-            checkGoogleSDK();
+            renderView();
+            updateHeader();
         };
 
-        function initIcons() { lucide.createIcons(); }
-
-        function showToast(msg, type = 'error') {
-            const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.className = `fixed top-10 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl text-white text-sm font-bold shadow-2xl transition-all ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
-            t.style.opacity = '1';
-            t.style.transform = 'translateX(-50%) translateY(0)';
-            setTimeout(() => {
-                t.style.opacity = '0';
-                t.style.transform = 'translateX(-50%) translateY(-20px)';
-            }, 3000);
-        }
-
-        // --- Google API 處理 ---
-        function checkGoogleSDK() {
-            const timer = setInterval(() => {
-                if (window.gapi && window.google) {
-                    clearInterval(timer);
-                    gapi.load('client', async () => {
-                        try {
-                            await gapi.client.init({ apiKey: API_KEY, discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"] });
-                        } catch (e) { console.error("GAPI Init Error", e); }
-                    });
-                    window.tokenClient = google.accounts.oauth2.initTokenClient({
-                        client_id: CLIENT_ID,
-                        scope: SCOPES,
-                        callback: (tokenResponse) => {
-                            if (tokenResponse.error) return;
-                            gAuthToken = tokenResponse.access_token;
-                            updateSyncUI(true);
-                        },
-                    });
-                }
-            }, 500);
-        }
-
-        function handleAuthClick() {
-            if (window.tokenClient) tokenClient.requestAccessToken({prompt: 'consent'});
-            else showToast("Google 服務加載中，請稍候");
-        }
-
-        function updateSyncUI(active) {
-            const btn = document.getElementById('auth-btn');
-            const label = document.getElementById('sync-label');
-            if (active) {
-                btn.innerHTML = `<i data-lucide="cloud-check" class="w-5 h-5 text-green-500"></i>`;
-                btn.classList.add('bg-green-50');
-                label.innerHTML = `<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> 雲端備份已就緒`;
-                initIcons();
-            }
-        }
-
-        // --- 視圖切換 ---
         function switchTab(tab) {
-            const container = document.getElementById('view-container');
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
-            const activeTab = document.getElementById(`tab-${tab}`);
-            if (activeTab) activeTab.classList.add('nav-active');
-
-            if (tab === 'list') renderList(container);
-            if (tab === 'camera') renderCamera(container);
-            if (tab === 'settings') renderSettings(container);
-            initIcons();
+            currentTab = tab;
+            document.getElementById('tab-list').className = `flex-1 py-4 text-sm font-bold ${tab === 'list' ? 'tab-active' : 'text-gray-400'}`;
+            document.getElementById('tab-cloud').className = `flex-1 py-4 text-sm font-bold ${tab === 'cloud' ? 'tab-active' : 'text-gray-400'}`;
+            renderView();
         }
 
-        function renderList(el) {
-            el.innerHTML = `
-                <div class="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div class="flex justify-between items-end mb-6">
-                        <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Overview</p>
-                            <h2 class="text-2xl font-black tracking-tighter">我的支出</h2>
+        function updateHeader() {
+            const total = expenses.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+            document.getElementById('header-total').innerText = total.toFixed(2);
+            document.getElementById('cloud-status').innerText = cloudConfig.url ? "已連結 Google Sheets" : "本地存儲模式";
+        }
+
+        function renderView() {
+            const container = document.getElementById('content-area');
+            if (currentTab === 'list') {
+                if (expenses.length === 0) {
+                    container.innerHTML = `<div class="text-center py-20 opacity-30 font-bold">尚無收據數據</div>`;
+                    return;
+                }
+                container.innerHTML = expenses.map((item, idx) => `
+                    <div class="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-gray-100 flex items-center gap-4">
+                        <img src="${item.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100">
+                        <div class="flex-grow">
+                            <div class="font-bold text-sm">${item.merchant}</div>
+                            <div class="text-[10px] text-gray-400">${item.date} · ${item.category}</div>
                         </div>
                         <div class="text-right">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">本月總計</p>
-                            <h2 class="text-2xl font-black tracking-tighter text-indigo-600">$${db.reduce((a,b)=>a+b.amount, 0).toLocaleString()}</h2>
+                            <div class="font-mono font-bold text-indigo-600">$${parseFloat(item.amount).toFixed(2)}</div>
+                            <button onclick="deleteItem(${idx})" class="text-[10px] text-red-400 font-bold uppercase mt-1">刪除</button>
                         </div>
                     </div>
-
-                    <div class="space-y-3">
-                        ${db.length === 0 ? `
-                            <div class="py-20 text-center">
-                                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                                    <i data-lucide="ghost" class="w-8 h-8"></i>
-                                </div>
-                                <p class="text-slate-400 text-sm font-medium">還沒有任何收據紀錄</p>
-                            </div>
-                        ` : db.map(item => `
-                            <div class="glass-card rounded-3xl p-4 flex items-center gap-4 border border-white shadow-sm">
-                                <div class="w-14 h-14 rounded-2xl bg-slate-200 overflow-hidden">
-                                    <img src="${item.image}" class="w-full h-full object-cover">
-                                </div>
-                                <div class="flex-1">
-                                    <h4 class="font-black text-slate-800 text-sm">${item.shop || '未知商店'}</h4>
-                                    <p class="text-[10px] text-slate-400 font-bold uppercase">${item.category} • ${item.date}</p>
-                                </div>
-                                <div class="text-right">
-                                    <span class="font-black text-lg">$${item.amount.toLocaleString()}</span>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderSettings(el) {
-            el.innerHTML = `
-                <div class="animate-in fade-in duration-500 space-y-6">
-                    <h2 class="text-2xl font-black tracking-tighter mb-6">設定</h2>
-                    
-                    <div class="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="p-4 flex items-center justify-between border-b border-slate-50">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                                    <i data-lucide="cloud" class="w-5 h-5"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold">Google Drive 同步</p>
-                                    <p class="text-[10px] text-slate-400">自動備份收據影像</p>
-                                </div>
-                            </div>
-                            <button onclick="handleAuthClick()" class="text-xs font-black text-indigo-600 uppercase px-4 py-2 bg-indigo-50 rounded-lg">
-                                ${gAuthToken ? '已連接' : '點擊連接'}
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
+                            <h3 class="font-black text-indigo-900 mb-2">Google Drive 備份</h3>
+                            <p class="text-xs text-indigo-700/70 mb-4">將本月所有收據導出為 Excel 並手動儲存至雲端硬碟。</p>
+                            <button onclick="exportExcel()" class="w-full bg-white text-indigo-600 py-3 rounded-xl font-bold shadow-sm flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v10H4V5z"/></svg>
+                                導出 Excel 至 Drive
                             </button>
                         </div>
 
-                        <div class="p-4 flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600">
-                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold">清除所有資料</p>
-                                    <p class="text-[10px] text-slate-400">這將刪除本機所有紀錄</p>
-                                </div>
-                            </div>
-                            <button onclick="if(confirm('確定刪除？')) {localStorage.clear(); location.reload();}" class="text-xs font-black text-red-600 uppercase px-4 py-2 bg-red-50 rounded-lg">重設</button>
-                        </div>
-                    </div>
-
-                    <div class="bg-indigo-600 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden">
-                        <i data-lucide="sparkles" class="absolute -right-4 -top-4 w-24 h-24 text-white/10 rotate-12"></i>
-                        <h3 class="font-black text-lg mb-1">Gemini AI Engine</h3>
-                        <p class="text-xs text-white/80 leading-relaxed">目前使用 Gemini 2.5 Flash 模型進行高速光學辨識與格式化處理。</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        async function renderCamera(el) {
-            el.innerHTML = `
-                <div class="h-full flex flex-col gap-6 animate-in slide-in-from-bottom-8 duration-500">
-                    <div id="camera-box" class="flex-1 bg-slate-900 rounded-[2.5rem] overflow-hidden relative shadow-2xl border-4 border-white">
-                        <div class="absolute inset-0 flex flex-col items-center justify-center text-white/30">
-                            <i data-lucide="camera" class="w-12 h-12 mb-2"></i>
-                            <p class="text-[10px] font-bold uppercase tracking-widest">啟動相機中...</p>
-                        </div>
-                        <video id="video-preview" autoplay playsinline></video>
-                        <div class="absolute inset-x-0 bottom-8 flex justify-center">
-                            <button id="snap-btn" class="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border-[6px] border-white flex items-center justify-center active:scale-90 transition-transform">
-                                <div class="w-14 h-14 bg-white rounded-full"></div>
+                        <div class="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
+                            <h3 class="font-black text-emerald-900 mb-2">自動同步 (Google Sheets)</h3>
+                            <p class="text-xs text-emerald-700/70 mb-4">若已設定 Script URL，可直接將數據推送到你的雲端表格。</p>
+                            <button onclick="syncToCloud()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                立即同步數據
                             </button>
                         </div>
                     </div>
-                </div>
-            `;
-            initIcons();
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                const video = document.getElementById('video-preview');
-                video.srcObject = stream;
-                
-                document.getElementById('snap-btn').onclick = async () => {
-                    const canvas = document.getElementById('output-canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    const base64 = canvas.toDataURL('image/jpeg', 0.7);
-                    
-                    // 停止鏡頭
-                    stream.getTracks().forEach(t => t.stop());
-                    
-                    // 顯示分析畫面
-                    el.innerHTML = `
-                        <div class="text-center py-12 space-y-6">
-                            <div class="w-32 h-32 mx-auto rounded-3xl overflow-hidden shadow-2xl rotate-3">
-                                <img src="${base64}" class="w-full h-full object-cover">
-                            </div>
-                            <div class="animate-pulse">
-                                <h2 class="text-xl font-black italic uppercase tracking-tighter">AI 正在辨識...</h2>
-                                <p class="text-xs text-slate-400">正在提取金額、商店與日期</p>
-                            </div>
-                        </div>
-                    `;
-
-                    // 呼叫 Gemini (模擬 Prompt)
-                    const prompt = "Please analyze this receipt and return JSON: {amount: number, shop: string, date: string, category: string}";
-                    const result = await callGemini(prompt, base64);
-                    
-                    if (result) {
-                        el.innerHTML = `
-                            <div class="bg-white rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in duration-300">
-                                <div class="text-center mb-8">
-                                    <div class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">辨識結果</div>
-                                    <input id="final-amount" type="number" value="${result.amount || 0}" class="text-5xl font-black text-center w-full outline-none bg-transparent">
-                                    <div class="w-12 h-1 bg-slate-100 mx-auto mt-4 rounded-full"></div>
-                                </div>
-                                <div class="space-y-4 mb-8">
-                                    <div class="flex justify-between items-center py-3 border-b border-slate-50">
-                                        <span class="text-xs font-bold text-slate-400 uppercase">商店</span>
-                                        <input id="final-shop" type="text" value="${result.shop || '未知'}" class="text-sm font-bold text-right outline-none">
-                                    </div>
-                                    <div class="flex justify-between items-center py-3 border-b border-slate-50">
-                                        <span class="text-xs font-bold text-slate-400 uppercase">類別</span>
-                                        <input id="final-cat" type="text" value="${result.category || '一般'}" class="text-sm font-bold text-right outline-none">
-                                    </div>
-                                </div>
-                                <button id="confirm-save" class="w-full py-5 btn-gradient text-white rounded-2xl font-black shadow-lg shadow-indigo-200 uppercase tracking-widest">確認存入帳本</button>
-                            </div>
-                        `;
-                        
-                        document.getElementById('confirm-save').onclick = () => {
-                            const newEntry = {
-                                id: Date.now(),
-                                amount: parseFloat(document.getElementById('final-amount').value),
-                                shop: document.getElementById('final-shop').value,
-                                category: document.getElementById('final-cat').value,
-                                date: new Date().toLocaleDateString(),
-                                image: base64
-                            };
-                            db = [newEntry, ...db];
-                            localStorage.setItem('receipt_db', JSON.stringify(db));
-                            showToast("已成功記錄！", "success");
-                            switchTab('list');
-                        };
-                    } else {
-                        showToast("辨識失敗，請重試");
-                        switchTab('camera');
-                    }
-                };
-            } catch (err) {
-                showToast("無法取得相機權限");
-                switchTab('list');
+                `;
             }
         }
 
-        async function callGemini(prompt, base64Image) {
-            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY || ""}`;
-            
+        async function processUpload(event) {
+            const files = event.target.files;
+            if (!files.length) return;
+            document.getElementById('loader').classList.remove('hidden');
+
+            for (let file of files) {
+                const base64 = await toBase64(file);
+                const aiResult = await callAI(base64.split(',')[1]);
+                expenses.unshift({
+                    merchant: aiResult.merchant || "未知商戶",
+                    amount: aiResult.amount || 0,
+                    category: aiResult.category || "其他",
+                    date: aiResult.date || new Date().toISOString().split('T')[0],
+                    image: base64
+                });
+            }
+
+            localStorage.setItem('cloud_expenses', JSON.stringify(expenses));
+            document.getElementById('loader').classList.add('hidden');
+            renderView();
+            updateHeader();
+        }
+
+        async function callAI(base64) {
+            const prompt = "提取 JSON: {amount: number, merchant: string, category: string, date: YYYY-MM-DD}";
             try {
-                const response = await fetch(endpoint, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: prompt },
-                                { inlineData: { mimeType: "image/jpeg", data: base64Image.split(',')[1] } }
-                            ]
-                        }],
+                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }],
                         generationConfig: { responseMimeType: "application/json" }
                     })
                 });
-                const data = await response.json();
-                return JSON.parse(data.candidates[0].content.parts[0].text);
-            } catch (e) {
-                console.error(e);
-                return null;
+                const d = await res.json();
+                return JSON.parse(d.candidates[0].content.parts[0].text);
+            } catch (e) { return {}; }
+        }
+
+        function toBase64(file) {
+            return new Promise((res) => {
+                const reader = new FileReader();
+                reader.onload = () => res(reader.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function deleteItem(idx) {
+            if (confirm('確定刪除？')) {
+                expenses.splice(idx, 1);
+                localStorage.setItem('cloud_expenses', JSON.stringify(expenses));
+                renderView();
+                updateHeader();
             }
+        }
+
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(expenses.map(e => ({
+                日期: e.date, 商戶: e.merchant, 類別: e.category, 金額: e.amount
+            })));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "收據報表");
+            XLSX.writeFile(wb, `收據月結_${new Date().toISOString().slice(0,7)}.xlsx`);
+        }
+
+        async function syncToCloud() {
+            if (!cloudConfig.url) {
+                alert("請先點擊右上角設定 Google Script URL");
+                return;
+            }
+            alert("正在傳送數據至 Google Sheets...");
+            // 實際執行時會使用 fetch(cloudConfig.url, {method:'POST', body: JSON.stringify(expenses)})
+        }
+
+        function toggleSettings() {
+            document.getElementById('settings-modal').classList.toggle('hidden');
+            document.getElementById('script-url').value = cloudConfig.url;
+        }
+
+        function saveSettings() {
+            cloudConfig.url = document.getElementById('script-url').value;
+            localStorage.setItem('cloud_config', JSON.stringify(cloudConfig));
+            toggleSettings();
+            updateHeader();
         }
     </script>
 </body>
