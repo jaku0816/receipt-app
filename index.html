@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 公司收據助手 Pro</title>
+    <title>AI 財務助手 - 高精準 OCR 版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -19,21 +19,13 @@
 <body class="bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
 
     <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col pb-28">
-        
-        <!-- 頂部標題與總計 -->
         <header class="bg-indigo-600 text-white p-6 rounded-b-[2.5rem] shadow-xl sticky top-0 z-30">
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h1 class="text-xl font-black flex items-center gap-2">
-                        <span class="text-2xl">🧾</span> 財務 AI 助手
-                    </h1>
-                    <p id="display-month" class="text-indigo-200 text-xs font-bold mt-1">2024 年 5 月份</p>
+                    <h1 class="text-xl font-black flex items-center gap-2"><span class="text-2xl">🧾</span> 高精準 OCR 助手</h1>
+                    <p id="display-month" class="text-indigo-200 text-xs font-bold mt-1">載入中...</p>
                 </div>
-                <button onclick="toggleCloudInfo()" class="p-2 bg-white/20 rounded-full active:scale-95 transition-transform">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
-                </button>
             </div>
-            
             <div class="bg-white/10 p-5 rounded-2xl backdrop-blur-md border border-white/20">
                 <p class="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">本月核銷總金額</p>
                 <div class="flex justify-between items-end">
@@ -41,30 +33,18 @@
                         <span class="text-sm font-bold text-indigo-200">$</span>
                         <span id="monthly-total" class="text-4xl font-mono font-black tracking-tighter">0.00</span>
                     </div>
-                    <div id="item-count" class="text-[10px] bg-white/20 px-3 py-1 rounded-full font-bold">
-                        0 筆項目
-                    </div>
+                    <div id="item-count" class="text-[10px] bg-white/20 px-3 py-1 rounded-full font-bold">0 筆項目</div>
                 </div>
             </div>
         </header>
 
-        <!-- 分頁切換 -->
         <nav class="flex bg-white/80 backdrop-blur-md border-b sticky top-[164px] z-20">
             <button onclick="switchTab('list')" id="btn-list" class="flex-1 py-4 text-sm font-bold tab-active transition-colors">收據明細</button>
-            <button onclick="switchTab('report')" id="btn-report" class="flex-1 py-4 text-sm font-bold text-slate-400 transition-colors">統計報表</button>
+            <button onclick="switchTab('report')" id="btn-report" class="flex-1 py-4 text-sm font-bold text-slate-400 transition-colors">導出報表</button>
         </nav>
 
-        <!-- 內容區域 -->
-        <main id="main-content" class="p-4 space-y-4 flex-grow">
-            <!-- 初始載入狀態 -->
-            <div id="empty-state" class="py-20 text-center text-slate-300">
-                <div class="text-6xl mb-4 opacity-20">📸</div>
-                <p class="font-bold">尚未上傳任何收據</p>
-                <p class="text-xs mt-1">點擊下方按鈕開始批次辨識</p>
-            </div>
-        </main>
+        <main id="main-content" class="p-4 space-y-4 flex-grow"></main>
 
-        <!-- 底部功能列 -->
         <footer class="fixed bottom-0 left-0 right-0 p-6 safe-area-bottom z-40 pointer-events-none">
             <div class="max-w-md mx-auto flex justify-center">
                 <label class="pointer-events-auto bg-indigo-600 text-white p-5 rounded-full shadow-2xl shadow-indigo-300 cursor-pointer active:scale-90 transition-all">
@@ -75,13 +55,21 @@
         </footer>
     </div>
 
-    <!-- 批次預覽與 AI 編輯彈窗 -->
+    <div id="global-loader" class="fixed inset-0 bg-white/95 z-[100] hidden flex flex-col items-center justify-center p-8 text-center">
+        <div class="loading-ring mb-6 scale-150"></div>
+        <h2 class="text-xl font-black text-slate-800 mb-2">AI 精準掃描中...</h2>
+        <p id="loader-text" class="text-slate-500 text-sm">正在執行高解析度 OCR 辨識</p>
+        <div class="w-48 bg-slate-100 h-1.5 rounded-full mt-6 overflow-hidden">
+            <div id="loader-progress" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+        </div>
+    </div>
+
     <div id="batch-modal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm">
         <div class="bg-white w-full max-w-lg rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
             <div class="p-6 border-b flex justify-between items-center bg-white rounded-t-[2.5rem] sm:rounded-3xl">
                 <div>
-                    <h3 class="font-bold text-lg text-slate-800">AI 辨識與校對</h3>
-                    <p class="text-[10px] text-slate-400">請確認 AI 讀取的金額與日期</p>
+                    <h3 class="font-bold text-lg text-slate-800">OCR 辨識結果</h3>
+                    <p class="text-[10px] text-slate-400">請核對 AI 提取的資訊</p>
                 </div>
                 <button onclick="closeModal()" class="text-slate-300 text-3xl hover:text-slate-500">&times;</button>
             </div>
@@ -94,22 +82,12 @@
         </div>
     </div>
 
-    <!-- 處理中遮罩 -->
-    <div id="global-loader" class="fixed inset-0 bg-white/95 z-[100] hidden flex flex-col items-center justify-center p-8 text-center">
-        <div class="loading-ring mb-6 scale-150"></div>
-        <h2 class="text-xl font-black text-slate-800 mb-2">AI 正在深度解析...</h2>
-        <p id="loader-text" class="text-slate-500 text-sm">正在壓縮並優化影像數據</p>
-        <div class="w-48 bg-slate-100 h-1.5 rounded-full mt-6 overflow-hidden">
-            <div id="loader-progress" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div id="toast" class="fixed top-8 left-1/2 -translate-x-1/2 z-[200] bg-slate-900/90 text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl opacity-0 transition-all pointer-events-none"></div>
+    <div id="toast" class="fixed top-8 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full text-xs font-bold shadow-2xl opacity-0 transition-all pointer-events-none text-white"></div>
 
     <script>
-        const apiKey = ""; // Gemini API 密鑰
-        const DB_KEY = "ai_company_receipts_v2";
+        // ⚠️【重要】：請在此填寫你的 Google Gemini API Key
+        const apiKey = "AIzaSyBteiXMYQ9IvCs39PG7FGRM6C-CzrE0BBk"; 
+        const DB_KEY = "ai_company_receipts_v3_hq";
         let receipts = [];
         let batchItems = [];
         let activeTab = 'list';
@@ -124,21 +102,24 @@
             document.getElementById('display-month').innerText = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月份`;
         };
 
-        // --- 核心：圖片加載與壓縮修復 ---
         async function handleBatchUpload(event) {
             const files = Array.from(event.target.files);
             if (!files.length) return;
+
+            // 檢查 API Key
+            if (!apiKey || apiKey.trim() === "") {
+                showToast("⚠️ 請先在程式碼中填入 API Key", "error");
+                return;
+            }
 
             showLoader(true);
             batchItems = [];
             
             for (let i = 0; i < files.length; i++) {
-                updateLoaderStatus(`正在處理第 ${i+1}/${files.length} 張圖片...`, (i/files.length)*100);
+                updateLoaderStatus(`正在處理第 ${i+1}/${files.length} 張圖片...`, ((i+1)/files.length)*100);
                 
                 try {
-                    // 1. 壓縮圖片
                     const compressed = await compressImage(files[i]);
-                    // 2. 呼叫 AI 辨識 (傳送純 base64)
                     const aiData = await analyzeWithAI(compressed.base64.split(',')[1]);
                     
                     batchItems.push({
@@ -150,8 +131,8 @@
                         date: aiData.date || new Date().toISOString().split('T')[0]
                     });
                 } catch (err) {
-                    console.error("處理出錯:", err);
-                    showToast("部分圖片辨識失敗", "error");
+                    console.error("處理圖片出錯:", err);
+                    showToast("部分圖片辨識失敗，請檢查網絡", "error");
                 }
             }
 
@@ -163,6 +144,7 @@
             document.getElementById('image-upload').value = "";
         }
 
+        // 🔧 修復 1：提高影像解析度與品質，確保文字清晰
         function compressImage(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -171,63 +153,74 @@
                     const img = new Image();
                     img.src = e.target.result;
                     img.onload = async () => {
-                        // 確保圖片解碼完成
                         if ('decode' in img) await img.decode();
                         
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 1000; // 提高一點解析度確保 AI 看得清
+                        // 提升解析度上限至 1500px，保留收據上的微小文字細節
+                        const MAX_WIDTH = 1500; 
                         let width = img.width;
                         let height = img.height;
 
-                        if (width > height) {
-                            if (width > MAX_WIDTH) {
-                                height *= MAX_WIDTH / width;
-                                width = MAX_WIDTH;
-                            }
-                        } else {
-                            if (height > MAX_WIDTH) {
-                                width *= MAX_WIDTH / height;
-                                height = MAX_WIDTH;
-                            }
+                        if (width > height && width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width; width = MAX_WIDTH;
+                        } else if (height > MAX_WIDTH) {
+                            width *= MAX_WIDTH / height; height = MAX_WIDTH;
                         }
 
-                        canvas.width = width;
-                        canvas.height = height;
+                        canvas.width = width; canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.imageSmoothingEnabled = true;
                         ctx.imageSmoothingQuality = 'high';
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // 輸出壓縮後的 JPEG
-                        resolve({ base64: canvas.toDataURL('image/jpeg', 0.6) });
+                        // JPEG 質量提升至 0.8
+                        resolve({ base64: canvas.toDataURL('image/jpeg', 0.8) });
                     };
                     img.onerror = reject;
                 };
             });
         }
 
+        // 🔧 修復 2 & 3：使用穩定模型，並加入 JSON Markdown 剝離器
         async function analyzeWithAI(base64Data) {
-            const prompt = "你是財務助手，請讀取收據圖片並提取以下 JSON 數據：{ \"amount\": 數字, \"merchant\": \"商戶名稱\", \"category\": \"餐飲/交通/辦公/其他\", \"date\": \"YYYY-MM-DD\" }。如果看不清金額，請回傳 0。";
+            // 強調純 JSON 輸出
+            const prompt = `你是專業的財務收據辨識助手。請讀取這張圖片，提取以下資訊並「必須」以純 JSON 格式回傳（絕對不要加上 \`\`\`json 標籤）：
+            { "amount": 數字, "merchant": "商戶名稱", "category": "餐飲/交通/辦公/其他", "date": "YYYY-MM-DD" }
+            如果看不清金額，請填寫 0。`;
             
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                // 使用穩定的 gemini-1.5-flash 模型
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64Data } }] }],
-                        generationConfig: { responseMimeType: "application/json" }
+                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64Data } }] }]
+                        // 移除 responseMimeType，因為有時反而會讓 API 回報錯誤，改用語意控制
                     })
                 });
                 
-                const json = await response.json();
-                return JSON.parse(json.candidates[0].content.parts[0].text);
+                const jsonResponse = await response.json();
+                
+                if (!jsonResponse.candidates) {
+                    console.error("AI 拒絕回應或 API Key 錯誤:", jsonResponse);
+                    throw new Error("API 驗證失敗");
+                }
+
+                let rawText = jsonResponse.candidates[0].content.parts[0].text;
+                
+                // 🛡️ 核心修復：強制剝離 AI 自行加入的 Markdown 標籤
+                rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                
+                return JSON.parse(rawText);
+
             } catch (err) {
-                console.error("AI API Error:", err);
-                return { amount: 0, merchant: "辨識失敗", category: "其他", date: "" };
+                console.error("解析 JSON 失敗:", err);
+                return { amount: 0, merchant: "⚠️ 解析失敗", category: "其他", date: "" };
             }
         }
 
-        // --- UI 渲染與互動 ---
+        // --- UI 渲染區 ---
         function switchTab(tab) {
             activeTab = tab;
             document.getElementById('btn-list').className = `flex-1 py-4 text-sm font-bold transition-colors ${tab === 'list' ? 'tab-active' : 'text-slate-400'}`;
@@ -243,7 +236,7 @@
                     container.innerHTML = `<div class="py-20 text-center text-slate-300"><div class="text-6xl mb-4 opacity-20">📸</div><p class="font-bold">尚未上傳任何收據</p></div>`;
                     return;
                 }
-                container.innerHTML = receipts.map((item, idx) => `
+                container.innerHTML = receipts.map((item) => `
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 receipt-card">
                         <div class="w-16 h-16 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 border">
                             <img src="${item.image}" class="w-full h-full object-cover">
@@ -256,10 +249,8 @@
                             <p class="text-[10px] text-slate-400 mt-1">${item.date}</p>
                         </div>
                         <div class="text-right">
-                            <p class="font-mono font-bold text-indigo-600">$${parseFloat(item.amount).toFixed(2)}</p>
-                            <button onclick="deleteReceipt('${item.id}')" class="text-slate-300 hover:text-red-400 mt-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            </button>
+                            <p class="font-mono font-bold ${item.amount === 0 ? 'text-red-500' : 'text-indigo-600'}">$${parseFloat(item.amount).toFixed(2)}</p>
+                            <button onclick="deleteReceipt('${item.id}')" class="text-slate-300 hover:text-red-400 mt-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                         </div>
                     </div>
                 `).join('');
@@ -269,58 +260,29 @@
         }
 
         function renderReportTab(container) {
-            const stats = receipts.reduce((acc, curr) => {
-                acc[curr.category] = (acc[curr.category] || 0) + parseFloat(curr.amount);
-                return acc;
-            }, {});
-            const total = Object.values(stats).reduce((a, b) => a + b, 0);
-
+            if (!receipts.length) {
+                container.innerHTML = `<div class="py-20 text-center text-slate-300"><p class="font-bold">沒有數據可以生成報表</p></div>`;
+                return;
+            }
             container.innerHTML = `
-                <div class="space-y-6">
-                    <div class="bg-white p-6 rounded-3xl border shadow-sm">
-                        <h3 class="font-black text-slate-800 mb-4 uppercase tracking-widest text-xs">分類支出比例</h3>
-                        <div class="space-y-4">
-                            ${Object.entries(stats).map(([cat, val]) => `
-                                <div>
-                                    <div class="flex justify-between text-xs font-bold mb-1">
-                                        <span class="text-slate-500">${cat}</span>
-                                        <span>$${val.toFixed(2)} (${((val/total)*100).toFixed(1)}%)</span>
-                                    </div>
-                                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-indigo-600 h-full transition-all duration-1000" style="width: ${(val/total)*100}%"></div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    <button onclick="exportToExcel()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 active:scale-95 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        導出本月 Excel 報表
-                    </button>
-
-                    <div class="p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
-                        <h4 class="font-bold text-indigo-900 mb-2">☁️ Google Drive 備份</h4>
-                        <p class="text-xs text-indigo-600/70 mb-4">目前的數據存儲於手機本地，點擊同步可連繫公司雲端備份。</p>
-                        <button onclick="syncToCloud()" class="w-full bg-white text-indigo-600 py-3 rounded-xl text-xs font-bold border border-indigo-200 active:bg-indigo-50">
-                            立即連繫雲端同步 (模擬)
-                        </button>
-                    </div>
-                </div>
+                <button onclick="exportToExcel()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 active:scale-95 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    導出本月 Excel 報表
+                </button>
             `;
         }
 
         function renderBatchModal() {
             const list = document.getElementById('batch-list');
             list.innerHTML = batchItems.map((item, idx) => `
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 flex gap-4 relative">
+                <div class="bg-white p-4 rounded-2xl border ${item.amount === 0 ? 'border-red-300 bg-red-50' : 'border-slate-200'} flex gap-4 relative">
                     <button onclick="removeItemFromBatch(${idx})" class="absolute -top-2 -right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-lg active:scale-90">&times;</button>
                     <div class="w-20 h-28 bg-slate-100 border rounded-lg overflow-hidden flex-shrink-0">
                         <img src="${item.image}" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-grow space-y-3">
                         <div>
-                            <label class="text-[10px] font-bold text-slate-400 uppercase">金額 ($)</label>
+                            <label class="text-[10px] font-bold ${item.amount === 0 ? 'text-red-500' : 'text-slate-400'} uppercase">金額 ($) ${item.amount === 0 ? ' - 請手動輸入' : ''}</label>
                             <input type="number" value="${item.amount}" onchange="updateBatchData(${idx}, 'amount', this.value)" class="w-full bg-transparent border-b border-indigo-200 font-mono font-bold text-lg outline-none focus:border-indigo-600">
                         </div>
                         <div>
@@ -332,22 +294,17 @@
             `).join('');
         }
 
-        function updateBatchData(idx, field, val) {
-            batchItems[idx][field] = field === 'amount' ? parseFloat(val) : val;
-        }
-
+        function updateBatchData(idx, field, val) { batchItems[idx][field] = field === 'amount' ? parseFloat(val) : val; }
+        
         function removeItemFromBatch(idx) {
             batchItems.splice(idx, 1);
-            if (!batchItems.length) closeModal();
-            else renderBatchModal();
+            if (!batchItems.length) closeModal(); else renderBatchModal();
         }
 
         function saveBatchToLocal() {
             receipts = [...batchItems, ...receipts];
             localStorage.setItem(DB_KEY, JSON.stringify(receipts));
-            closeModal();
-            updateHeader();
-            renderContent();
+            closeModal(); updateHeader(); renderContent();
             showToast("✅ 已成功存入明細");
         }
 
@@ -355,63 +312,36 @@
             if (confirm("確定要刪除這筆收據紀錄嗎？")) {
                 receipts = receipts.filter(r => r.id !== id);
                 localStorage.setItem(DB_KEY, JSON.stringify(receipts));
-                updateHeader();
-                renderContent();
-                showToast("🗑️ 已刪除");
+                updateHeader(); renderContent();
             }
         }
 
         function exportToExcel() {
-            if (!receipts.length) return showToast("沒有數據可供導出", "error");
-            
-            const ws = XLSX.utils.json_to_sheet(receipts.map(r => ({
-                "日期": r.date,
-                "商戶": r.merchant,
-                "分類": r.category,
-                "金額": parseFloat(r.amount)
-            })));
+            const ws = XLSX.utils.json_to_sheet(receipts.map(r => ({ "日期": r.date, "商戶": r.merchant, "分類": r.category, "金額": parseFloat(r.amount) })));
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "收據明細");
-            XLSX.writeFile(wb, `收據報表_${new Date().toISOString().slice(0,10)}.xlsx`);
-            showToast("📊 Excel 已生成並下載");
+            XLSX.writeFile(wb, `收據報表.xlsx`);
+            showToast("📊 Excel 已生成");
         }
 
-        // --- 輔助工具 ---
         function updateHeader() {
             const total = receipts.reduce((s, c) => s + parseFloat(c.amount), 0);
             document.getElementById('monthly-total').innerText = total.toLocaleString(undefined, {minimumFractionDigits: 2});
             document.getElementById('item-count').innerText = `${receipts.length} 筆項目`;
         }
 
-        function showLoader(show) {
-            document.getElementById('global-loader').classList.toggle('hidden', !show);
-        }
-
+        function showLoader(show) { document.getElementById('global-loader').classList.toggle('hidden', !show); }
         function updateLoaderStatus(text, progress) {
             document.getElementById('loader-text').innerText = text;
             document.getElementById('loader-progress').style.width = progress + '%';
         }
-
-        function closeModal() {
-            document.getElementById('batch-modal').classList.add('hidden');
-            batchItems = [];
-        }
-
+        function closeModal() { document.getElementById('batch-modal').classList.add('hidden'); batchItems = []; }
+        
         function showToast(msg, type = 'success') {
             const t = document.getElementById('toast');
             t.innerText = msg;
-            t.classList.replace('opacity-0', 'opacity-100');
-            t.className = `fixed top-8 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full text-xs font-bold shadow-2xl transition-all ${type === 'success' ? 'bg-slate-900' : 'bg-red-600'} text-white opacity-100`;
+            t.className = `fixed top-8 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full text-xs font-bold shadow-2xl transition-all ${type === 'success' ? 'bg-slate-900' : 'bg-red-500'} text-white opacity-100`;
             setTimeout(() => t.classList.replace('opacity-100', 'opacity-0'), 2500);
-        }
-
-        function syncToCloud() {
-            showToast("正在建立 Google OAuth 連結...", "success");
-            setTimeout(() => showToast("已模擬同步：數據備份至 Drive/Expense_Reports"), 2000);
-        }
-
-        function toggleCloudInfo() {
-            showToast("☁️ 雲端狀態：本地已加密儲存");
         }
     </script>
 </body>
