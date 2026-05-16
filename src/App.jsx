@@ -174,7 +174,7 @@ const App = () => {
       const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
       const base64Data = base64Image.split(',')[1];
 
-      const modelName = (apiKey && apiKey.length > 20) ? "gemini-1.5-flash-latest" : "gemini-2.5-flash-preview-09-2025";
+      const modelName = (apiKey && apiKey.length > 20) ? "gemini-1.5-flash" : "gemini-2.5-flash-preview-09-2025";
       
       // 🚀 核心改動：決定發送請求的目標網址 (有代理用代理，沒代理用官方)
       const baseUrl = proxyUrl && proxyUrl.length > 5 
