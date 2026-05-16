@@ -39,7 +39,7 @@ const App = () => {
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
 
   // ⚠️ 1. 貼上你的 API Key
-  const apiKey = "AIzaSyAJb1G3jUb8f5tWSrrafN-gcO73KSPtGGg"; 
+  const apiKey = "AIzaSyCMHdlAwhyuzqX2gSS_PIbc7GKo20LNdv8"; 
 
   // ⚠️ 2. 貼上你剛剛在 Cloudflare 建立的中轉站網址 (注意：結尾不要有斜線 '/')
   // 例如： "https://gemini-proxy.jaku0816.workers.dev"
