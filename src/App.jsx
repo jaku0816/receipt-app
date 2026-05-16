@@ -174,14 +174,10 @@ const App = () => {
       const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
       const base64Data = base64Image.split(',')[1];
 
-      const modelName = (apiKey && apiKey.length > 20) ? "gemini-1.5-flash" : "gemini-2.5-flash-preview-09-2025";
+      const modelName = "gemini-1.5-flash";
       
-      // 🚀 核心改動：決定發送請求的目標網址 (有代理用代理，沒代理用官方)
-      const baseUrl = proxyUrl && proxyUrl.length > 5 
-        ? proxyUrl 
-        : "https://generativelanguage.googleapis.com";
-
-      const requestUrl = `${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      // 🚀 終極改動：直接讓 Vercel 位於海外的伺服器幫我們轉發請求！
+      const requestUrl = `/gemini-api/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
       const response = await fetch(requestUrl, {
         method: 'POST',
