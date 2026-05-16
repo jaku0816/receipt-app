@@ -38,13 +38,8 @@ const App = () => {
   const currentMonthStr = new Date().toISOString().substring(0, 7);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
 
-  // ⚠️ 1. 貼上你的 API Key
+  // ⚠️ 再次提醒：貼上你的 API Key
   const apiKey = "AIzaSyCMHdlAwhyuzqX2gSS_PIbc7GKo20LNdv8"; 
-
-  // ⚠️ 2. 貼上你剛剛在 Cloudflare 建立的中轉站網址 (注意：結尾不要有斜線 '/')
-  // 例如： "https://gemini-proxy.jaku0816.workers.dev"
-  // 如果保持為空，則會預設使用 Google 官方網址 (香港 IP 會被擋)
-  const proxyUrl = "https://gemini-proxy.jaku0816.workers.dev";
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -404,6 +399,7 @@ const App = () => {
           )}
         </div>
         
+        {/* 🚀 顯示明確的錯誤原因 */}
         {item.status === 'error' && item.errorDetail && (
           <div className="text-[10px] text-red-600 bg-red-50 p-1.5 rounded border border-red-100 break-words leading-tight mt-1">
             <strong>錯誤細節：</strong> {item.errorDetail}
