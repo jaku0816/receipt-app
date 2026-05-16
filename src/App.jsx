@@ -38,7 +38,7 @@ const App = () => {
   const currentMonthStr = new Date().toISOString().substring(0, 7);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
 
-  // ⚠️ 再次提醒：貼上你的 API Key
+  // ⚠️ 記得貼上你剛才申請的最新的 API Key！
   const apiKey = "AIzaSyCMHdlAwhyuzqX2gSS_PIbc7GKo20LNdv8"; 
 
   useEffect(() => {
@@ -171,8 +171,8 @@ const App = () => {
 
       const modelName = "gemini-1.5-flash";
       
-      // 🚀 終極改動：直接讓 Vercel 位於海外的伺服器幫我們轉發請求！
-      const requestUrl = `/gemini-api/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      // 🚀 終極改動：呼叫我們剛剛建立的 Vercel 美國 API (api/gemini.js)！
+      const requestUrl = `/api/gemini?key=${apiKey}&model=${modelName}`;
 
       const response = await fetch(requestUrl, {
         method: 'POST',
@@ -399,7 +399,6 @@ const App = () => {
           )}
         </div>
         
-        {/* 🚀 顯示明確的錯誤原因 */}
         {item.status === 'error' && item.errorDetail && (
           <div className="text-[10px] text-red-600 bg-red-50 p-1.5 rounded border border-red-100 break-words leading-tight mt-1">
             <strong>錯誤細節：</strong> {item.errorDetail}
