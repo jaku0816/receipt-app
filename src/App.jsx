@@ -168,7 +168,7 @@ const App = () => {
 
       const modelName = "gemini-1.5-flash";
       
-      // 🚀 完全隱藏密碼，直接呼叫 Vercel 中轉站！
+      // 直接呼叫後端 API，不再需要傳遞 API Key
       const requestUrl = `/api/gemini?model=${modelName}`;
 
       const response = await fetch(requestUrl, {
@@ -247,8 +247,6 @@ const App = () => {
   const handleFileUpload = async (event) => {
     const allFiles = Array.from(event.target.files);
     if (allFiles.length === 0) return;
-
-    // 🚀 已移除舊的 apiKey 檢查防呆機制，避免白畫面崩潰
 
     const MAX_UPLOADS = 10;
     let filesToProcess = allFiles;
