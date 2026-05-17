@@ -39,7 +39,8 @@ const App = () => {
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
 
   // ⚠️ 記得貼上你剛才申請的最新的 API Key！
-  const apiKey = "AIzaSyD3KnPbSIgaT9dGShnasNlAEtx66N5IgX0"; 
+  // 🚀 前端再也不需要傳送密碼，直接呼叫 API
+const requestUrl = `/api/gemini?model=${modelName}`;
 
   useEffect(() => {
     const script = document.createElement('script');
