@@ -168,7 +168,6 @@ const App = () => {
 
       const modelName = "gemini-1.5-flash";
       
-      // 直接呼叫後端 API，不再需要傳遞 API Key
       const requestUrl = `/api/gemini?model=${modelName}`;
 
       const response = await fetch(requestUrl, {
@@ -200,8 +199,8 @@ const App = () => {
       const cleanedJson = text.replace(/```json|```/g, '').trim();
       return JSON.parse(cleanedJson);
     } catch (error) {
-      console.error("OCR Error Detail:", error.message);
-      return { _error: error.message }; 
+      console.error("OCR Error Detail:", error);
+      return { _error: error.message || "發生未知錯誤" }; 
     }
   };
 
