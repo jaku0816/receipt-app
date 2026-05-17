@@ -169,7 +169,7 @@ const App = () => {
       const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
       const base64Data = base64Image.split(',')[1];
 
-      const modelName = "gemini-1.5-flash";
+      const modelName = "gemini-2.5-flash";
       
       // 🚀 終極改動：呼叫我們剛剛建立的 Vercel 美國 API (api/gemini.js)！
       const requestUrl = `/api/gemini?key=${apiKey}&model=${modelName}`;
