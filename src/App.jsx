@@ -39,7 +39,7 @@ const App = () => {
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
 
   // ⚠️ 記得貼上你剛才申請的最新的 API Key！
-  const apiKey = "AIzaSyCMHdlAwhyuzqX2gSS_PIbc7GKo20LNdv8"; 
+  const apiKey = "AIzaSyD3KnPbSIgaT9dGShnasNlAEtx66N5IgX0"; 
 
   useEffect(() => {
     const script = document.createElement('script');
