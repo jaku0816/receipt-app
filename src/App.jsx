@@ -166,7 +166,7 @@ const App = () => {
       const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
       const base64Data = base64Image.split(',')[1];
 
-      const modelName = "gemini-1.5-flash";
+      const modelName = "gemini-2.5-flash";
       
       const requestUrl = `/api/gemini?model=${modelName}`;
 
