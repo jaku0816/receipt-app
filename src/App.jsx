@@ -38,10 +38,6 @@ const App = () => {
   const currentMonthStr = new Date().toISOString().substring(0, 7);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
 
-  // ⚠️ 記得貼上你剛才申請的最新的 API Key！
-  // 🚀 前端再也不需要傳送密碼，直接呼叫 API
-const requestUrl = `/api/gemini?model=${modelName}`;
-
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -170,10 +166,10 @@ const requestUrl = `/api/gemini?model=${modelName}`;
       const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
       const base64Data = base64Image.split(',')[1];
 
-      const modelName = "gemini-2.5-flash";
+      const modelName = "gemini-1.5-flash";
       
-      // 🚀 終極改動：呼叫我們剛剛建立的 Vercel 美國 API (api/gemini.js)！
-      const requestUrl = `/api/gemini?key=${apiKey}&model=${modelName}`;
+      // 🚀 完全隱藏密碼，直接呼叫 Vercel 中轉站！
+      const requestUrl = `/api/gemini?model=${modelName}`;
 
       const response = await fetch(requestUrl, {
         method: 'POST',
@@ -252,10 +248,7 @@ const requestUrl = `/api/gemini?model=${modelName}`;
     const allFiles = Array.from(event.target.files);
     if (allFiles.length === 0) return;
 
-    if (!apiKey || apiKey.length < 10) {
-      showNotification("請在程式碼的 apiKey 欄位填入你的真實密碼", 'error');
-      return;
-    }
+    // 🚀 已移除舊的 apiKey 檢查防呆機制，避免白畫面崩潰
 
     const MAX_UPLOADS = 10;
     let filesToProcess = allFiles;
@@ -305,7 +298,7 @@ const requestUrl = `/api/gemini?model=${modelName}`;
             status: 'error',
             isDuplicate: false,
             driveSynced: false,
-            errorDetail: errMsg // 記錄明確錯誤原因
+            errorDetail: errMsg 
           };
           newReceipts.push(fallbackItem);
           currentReceipts.push(fallbackItem);
